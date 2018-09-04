@@ -24,6 +24,7 @@ type CharmDir struct {
 	config   *Config
 	metrics  *Metrics
 	actions  *Actions
+	profiles *Profiles
 	revision int
 }
 
@@ -88,6 +89,19 @@ func ReadCharmDir(path string) (dir *CharmDir, err error) {
 		}
 	}
 
+	file, err = os.Open(dir.join("profiles.yaml"))
+	if _, ok := err.(*os.PathError); ok {
+		dir.profiles = NewProfiles()
+	} else if err != nil {
+		return nil, err
+	} else {
+		dir.profiles, err = ReadProfiles(file)
+		file.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if file, err = os.Open(dir.join("revision")); err == nil {
 		_, err = fmt.Fscan(file, &dir.revision)
 		file.Close()
@@ -134,6 +148,12 @@ func (dir *CharmDir) Metrics() *Metrics {
 // for the charm expanded in dir.
 func (dir *CharmDir) Actions() *Actions {
 	return dir.actions
+}
+
+// Profiles returns the Profiles representing the profiles.yaml file
+// for the charm expanded in dir.
+func (dir *CharmDir) Profiles() *Profiles {
+	return dir.profiles
 }
 
 // SetRevision changes the charm revision number. This affects

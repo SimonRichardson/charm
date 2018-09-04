@@ -28,6 +28,7 @@ type CharmArchive struct {
 	config   *Config
 	metrics  *Metrics
 	actions  *Actions
+	profiles *Profiles
 	revision int
 }
 
@@ -117,6 +118,19 @@ func readCharmArchive(zopen zipOpener) (archive *CharmArchive, err error) {
 		}
 	}
 
+	reader, err = zipOpenFile(zipr, "profiles.yaml")
+	if _, ok := err.(*noCharmArchiveFile); ok {
+		b.profiles = NewProfiles()
+	} else if err != nil {
+		return nil, err
+	} else {
+		b.profiles, err = ReadProfiles(reader)
+		reader.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	reader, err = zipOpenFile(zipr, "revision")
 	if err != nil {
 		if _, ok := err.(*noCharmArchiveFile); !ok {
@@ -183,6 +197,12 @@ func (a *CharmArchive) Metrics() *Metrics {
 // archive.
 func (a *CharmArchive) Actions() *Actions {
 	return a.actions
+}
+
+// Profiles returns the Profiles representing the profiles.yaml file
+// for the charm expanded in dir.
+func (a *CharmArchive) Profiles() *Profiles {
+	return a.profiles
 }
 
 type zipReadCloser struct {
